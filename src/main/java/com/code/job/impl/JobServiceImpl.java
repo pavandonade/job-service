@@ -9,21 +9,14 @@ import com.code.job.dto.JobDTO;
 import com.code.job.external.Company;
 import com.code.job.external.Review;
 import com.code.job.mapper.JobMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-
 import java.util.List;
 
 @Service
 public class JobServiceImpl implements JobService {
 
     private final JobRepository jobRepository;
-    @Autowired
-    RestTemplate restTemplate;
 
     private final CompanyClient companyClient;
 
@@ -36,6 +29,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
+    @CircuitBreaker(name = "companyBreaker")
     public List<JobDTO> findAll() {
 
         List<Job> jobs = jobRepository.findAll();
@@ -73,8 +67,10 @@ public class JobServiceImpl implements JobService {
     @Override
     public JobDTO getJobById(Long id) {
         Job job = jobRepository.findById(id).orElse(null);
-        return convertToDto(job);
-
+        if (job != null)
+            return convertToDto(job);
+        else
+            return null;
     }
 
     @Override
